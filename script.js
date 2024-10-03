@@ -623,3 +623,47 @@ function scaleToFit() {
 
 window.addEventListener("resize", () => scaleToFit());
 scaleToFit();
+
+document.getElementById("generate-diagram").addEventListener("click", () => {
+  const input = document.getElementById("diagram-input").value;
+  const lines = input.split("\n");
+  const elements = [];
+  const links = [];
+
+  lines.forEach(line => {
+    const parts = line.split(" ");
+    const command = parts[0].toLowerCase();
+
+    switch (command) {
+      case "actor":
+        const actorName = parts.slice(1).join(" ");
+        const actor = createActor(actorName, Math.random() * 800, Math.random() * 1000, COLORS[Math.floor(Math.random() * COLORS.length)]);
+        elements.push(actor);
+        break;
+      case "usecase":
+        const useCaseName = parts.slice(1).join(" ");
+        const useCase = createUseCase(useCaseName, Math.random() * 800, Math.random() * 1000);
+        elements.push(useCase);
+        break;
+      case "link":
+          const sourceName = parts[1];
+          const targetName = parts[2];
+          const source = elements.find(el => el.attr('label/text') === sourceName);
+          const target = elements.find(el => el.attr('label/text') === targetName);
+          console.log("Source:", sourceName, "Found:", !!source);
+          console.log("Target:", targetName, "Found:", !!target);
+          if (source && target) {
+            const link = createUse(source, target);
+            links.push(link);
+          }
+        break;
+      default:
+        console.error("Unknown command:", command);
+    }
+  });
+
+  graph.clear();
+  graph.addCells([...elements, ...links]);
+  fillUseCaseColors();
+  scaleToFit();
+});

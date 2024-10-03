@@ -1,8 +1,30 @@
 #paper-container {
-    position: absolute;
-    right: 0;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    overflow: scroll;
-  }
+  position: absolute;
+  right: 0;
+  top: 0;
+  left: 200px; /* Deja espacio para la barra lateral */
+  bottom: 0;
+  overflow: scroll;
+}
+
+#controls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px; /* Ancho de la barra lateral */
+  height: 100%;
+  background-color: #f0f0f0; /* Color de fondo para distinguir la barra lateral */
+  box-sizing: border-box;
+  padding: 10px;
+}
+
+#diagram-input {
+  width: 100%;
+  height: calc(100% - 40px); /* Ajusta la altura para dejar espacio para el botón */
+  box-sizing: border-box;
+}
+
+#generate-diagram {
+  width: 100%;
+  margin-top: 10px;
+}
