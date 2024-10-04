@@ -610,6 +610,36 @@ function scaleToFit() {
 window.addEventListener("resize", () => scaleToFit());
 scaleToFit();
 
+// Helper function to position elements inside or outside boundaries
+function getElementPosition(boundary, boundaryElementsPosition, globalX, globalY, globalOffsetX, globalOffsetY, boundaryPadding) {
+  let posX, posY;
+  if (boundary) {
+    // Position element within the current boundary
+    const boundaryBBox = boundary.getBBox();
+    const boundaryPos = boundaryElementsPosition[boundary.attr("label/text")];
+    posX = boundaryPos.x;
+    posY = boundaryPos.y;
+    // Update the position for the next element within the boundary
+    boundaryElementsPosition[boundary.attr("label/text")].x += globalOffsetX;
+    if (boundaryElementsPosition[boundary.attr("label/text")].x > boundaryBBox.x + boundaryBBox.width - boundaryPadding) {
+      // Move to the next row if the current row is full
+      boundaryElementsPosition[boundary.attr("label/text")].x = boundaryBBox.x + boundaryPadding;
+      boundaryElementsPosition[boundary.attr("label/text")].y += globalOffsetY;
+    }
+  } else {
+    // Position element globally
+    posX = globalX;
+    posY = globalY;
+    globalX += globalOffsetX;
+    if (globalX > 800) {
+      // Move to the next row if the current row is full
+      globalX = 50;
+      globalY += globalOffsetY;
+    }
+  }
+  return { x: posX, y: posY, globalX, globalY };
+}
+
 document.getElementById("generate-diagram").addEventListener("click", () => {
   const input = document.getElementById("diagram-input").value;
   const lines = input.split("\n"); // Split the input into lines
@@ -661,35 +691,13 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       case "actor":
         // Create an actor element
         const actorName = parts.slice(1).join(" "); // Get the actor name
-        let actorX, actorY;
-        if (currentBoundary) {
-          // Position actor within the current boundary
-          const boundaryBBox = currentBoundary.getBBox();
-          const boundaryPos = boundaryElementsPosition[currentBoundary.attr("label/text")];
-          actorX = boundaryPos.x;
-          actorY = boundaryPos.y;
-          // Update the position for the next element within the boundary
-          boundaryElementsPosition[currentBoundary.attr("label/text")].x += globalOffsetX;
-          if (boundaryElementsPosition[currentBoundary.attr("label/text")].x > boundaryBBox.x + boundaryBBox.width - boundaryPadding) {
-            // Move to the next row if the current row is full
-            boundaryElementsPosition[currentBoundary.attr("label/text")].x = boundaryBBox.x + boundaryPadding;
-            boundaryElementsPosition[currentBoundary.attr("label/text")].y += globalOffsetY;
-          }
-        } else {
-          // Position actor globally
-          actorX = globalX;
-          actorY = globalY;
-          globalX += globalOffsetX;
-          if (globalX > 800) {
-            // Move to the next row if the current row is full
-            globalX = 50;
-            globalY += globalOffsetY;
-          }
-        }
+        const actorPositionData = getElementPosition(currentBoundary, boundaryElementsPosition, globalX, globalY, globalOffsetX, globalOffsetY, boundaryPadding); // Get the position for the actor
+        globalX = actorPositionData.globalX;
+        globalY = actorPositionData.globalY;
         const actor = createActor(
           actorName,
-          actorX,
-          actorY,
+          actorPositionData.x,
+          actorPositionData.y,
           COLORS[Math.floor(Math.random() * COLORS.length)] // Random color for the actor
         );
         elements.push(actor); // Add the actor to the elements array
@@ -700,35 +708,13 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       case "usecase":
         // Create a use case element
         const useCaseName = parts.slice(1).join(" "); // Get the use case name
-        let useCaseX, useCaseY;
-        if (currentBoundary) {
-          // Position use case within the current boundary
-          const boundaryBBox = currentBoundary.getBBox();
-          const boundaryPos = boundaryElementsPosition[currentBoundary.attr("label/text")];
-          useCaseX = boundaryPos.x;
-          useCaseY = boundaryPos.y;
-          // Update the position for the next element within the boundary
-          boundaryElementsPosition[currentBoundary.attr("label/text")].x += globalOffsetX;
-          if (boundaryElementsPosition[currentBoundary.attr("label/text")].x > boundaryBBox.x + boundaryBBox.width - boundaryPadding) {
-            // Move to the next row if the current row is full
-            boundaryElementsPosition[currentBoundary.attr("label/text")].x = boundaryBBox.x + boundaryPadding;
-            boundaryElementsPosition[currentBoundary.attr("label/text")].y += globalOffsetY;
-          }
-        } else {
-          // Position use case globally
-          useCaseX = globalX;
-          useCaseY = globalY;
-          globalX += globalOffsetX;
-          if (globalX > 800) {
-            // Move to the next row if the current row is full
-            globalX = 50;
-            globalY += globalOffsetY;
-          }
-        }
+        const useCasePositionData = getElementPosition(currentBoundary, boundaryElementsPosition, globalX, globalY, globalOffsetX, globalOffsetY, boundaryPadding); // Get the position for the use case
+        globalX = useCasePositionData.globalX;
+        globalY = useCasePositionData.globalY;
         const useCase = createUseCase(
           useCaseName,
-          useCaseX,
-          useCaseY
+          useCasePositionData.x,
+          useCasePositionData.y
         );
         elements.push(useCase); // Add the use case to the elements array
         if (currentBoundary) {
