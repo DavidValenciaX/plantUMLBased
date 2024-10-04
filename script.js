@@ -615,46 +615,69 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
   const lines = input.split("\n");
   const elements = [];
   const links = [];
+  const boundaries = {};
+  let currentBoundary = null;
 
-  lines.forEach(line => {
-    const parts = line.split(" ");
+  lines.forEach((line) => {
+    const trimmedLine = line.trim();
+    const parts = trimmedLine.split(" ");
     const command = parts[0].toLowerCase();
 
     switch (command) {
-      case "actor":
-        const actorName = parts.slice(1).join(" ");
-        const actor = createActor(actorName, Math.random() * 800, Math.random() * 1000, COLORS[Math.floor(Math.random() * COLORS.length)]);
-        elements.push(actor);
-        break;
-      case "usecase":
-        const useCaseName = parts.slice(1).join(" ");
-        const useCase = createUseCase(useCaseName, Math.random() * 800, Math.random() * 1000);
-        elements.push(useCase);
-        break;
       case "boundary":
         const boundaryName = parts.slice(1).join(" ");
         const boundary = new Boundary({
           size: {
             width: 300, // Puedes ajustar el tamaño según sea necesario
-            height: 200
+            height: 200,
           },
           position: {
             x: Math.random() * 800,
-            y: Math.random() * 1000
+            y: Math.random() * 1000,
           },
           attrs: {
             label: {
-              text: boundaryName
-            }
-          }
+              text: boundaryName,
+            },
+          },
         });
         elements.push(boundary);
+        boundaries[boundaryName] = boundary;
+        currentBoundary = boundary;
+        break;
+      case "endboundary":
+        currentBoundary = null;
+        break;
+      case "actor":
+        const actorName = parts.slice(1).join(" ");
+        const actor = createActor(
+          actorName,
+          Math.random() * 800,
+          Math.random() * 1000,
+          COLORS[Math.floor(Math.random() * COLORS.length)]
+        );
+        elements.push(actor);
+        if (currentBoundary) {
+          currentBoundary.embed(actor);
+        }
+        break;
+      case "usecase":
+        const useCaseName = parts.slice(1).join(" ");
+        const useCase = createUseCase(
+          useCaseName,
+          Math.random() * 800,
+          Math.random() * 1000
+        );
+        elements.push(useCase);
+        if (currentBoundary) {
+          currentBoundary.embed(useCase);
+        }
         break;
       case "link":
         const sourceName = parts[1];
         const targetName = parts[2];
-        const source = elements.find(el => el.attr('label/text') === sourceName);
-        const target = elements.find(el => el.attr('label/text') === targetName);
+        const source = elements.find((el) => el.attr("label/text") === sourceName);
+        const target = elements.find((el) => el.attr("label/text") === targetName);
         if (source && target) {
           const link = createUse(source, target);
           links.push(link);
