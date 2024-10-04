@@ -612,30 +612,31 @@ scaleToFit();
 
 document.getElementById("generate-diagram").addEventListener("click", () => {
   const input = document.getElementById("diagram-input").value;
-  const lines = input.split("\n");
-  const elements = [];
-  const links = [];
-  const boundaries = {};
-  let currentBoundary = null;
-  let globalX = 50;
-  let globalY = 50;
-  const globalOffsetX = 150;
-  const globalOffsetY = 150;
-  const boundaryPadding = 20;
+  const lines = input.split("\n"); // Split the input into lines
+  const elements = []; // Store all diagram elements here
+  const links = []; // Store all links here
+  const boundaries = {}; // Store boundary elements by name
+  let currentBoundary = null; // Keep track of the current boundary context
+  let globalX = 50; // Initial X position for global elements
+  let globalY = 50; // Initial Y position for global elements
+  const globalOffsetX = 150; // Horizontal spacing between elements
+  const globalOffsetY = 150; // Vertical spacing between elements
+  const boundaryPadding = 20; // Padding for elements inside boundaries
   const boundaryElementsPosition = {}; // To track positioning within boundaries
 
   lines.forEach((line) => {
-    const trimmedLine = line.trim();
-    const parts = trimmedLine.split(" ");
-    const command = parts[0].toLowerCase();
+    const trimmedLine = line.trim(); // Remove any extra spaces from the line
+    const parts = trimmedLine.split(" "); // Split the line into words
+    const command = parts[0].toLowerCase(); // Get the command (e.g., boundary, actor, etc.)
 
     switch (command) {
       case "boundary":
-        const boundaryName = parts.slice(1).join(" ");
+        // Create a boundary element
+        const boundaryName = parts.slice(1).join(" "); // Get the boundary name
         const boundary = new Boundary({
           size: {
-            width: 300, // Puedes ajustar el tamaño según sea necesario
-            height: 200,
+            width: 300, // Width of the boundary box
+            height: 200, // Height of the boundary box
           },
           position: {
             x: globalX,
@@ -643,37 +644,44 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
           },
           attrs: {
             label: {
-              text: boundaryName,
+              text: boundaryName, // Set the label to the boundary name
             },
           },
         });
-        elements.push(boundary);
-        boundaries[boundaryName] = boundary;
-        boundaryElementsPosition[boundaryName] = { x: boundary.position().x + boundaryPadding, y: boundary.position().y + boundaryPadding };
-        currentBoundary = boundary;
-        globalY += boundary.size().height + globalOffsetY;
+        elements.push(boundary); // Add the boundary to the elements array
+        boundaries[boundaryName] = boundary; // Store the boundary by name
+        boundaryElementsPosition[boundaryName] = { x: boundary.position().x + boundaryPadding, y: boundary.position().y + boundaryPadding }; // Initialize position tracking for elements inside the boundary
+        currentBoundary = boundary; // Set the current boundary context
+        globalY += boundary.size().height + globalOffsetY; // Update global Y position for the next element
         break;
       case "endboundary":
+        // End the current boundary context
         currentBoundary = null;
         break;
       case "actor":
-        const actorName = parts.slice(1).join(" ");
+        // Create an actor element
+        const actorName = parts.slice(1).join(" "); // Get the actor name
         let actorX, actorY;
         if (currentBoundary) {
+          // Position actor within the current boundary
           const boundaryBBox = currentBoundary.getBBox();
           const boundaryPos = boundaryElementsPosition[currentBoundary.attr("label/text")];
           actorX = boundaryPos.x;
           actorY = boundaryPos.y;
+          // Update the position for the next element within the boundary
           boundaryElementsPosition[currentBoundary.attr("label/text")].x += globalOffsetX;
           if (boundaryElementsPosition[currentBoundary.attr("label/text")].x > boundaryBBox.x + boundaryBBox.width - boundaryPadding) {
+            // Move to the next row if the current row is full
             boundaryElementsPosition[currentBoundary.attr("label/text")].x = boundaryBBox.x + boundaryPadding;
             boundaryElementsPosition[currentBoundary.attr("label/text")].y += globalOffsetY;
           }
         } else {
+          // Position actor globally
           actorX = globalX;
           actorY = globalY;
           globalX += globalOffsetX;
           if (globalX > 800) {
+            // Move to the next row if the current row is full
             globalX = 50;
             globalY += globalOffsetY;
           }
@@ -682,31 +690,37 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
           actorName,
           actorX,
           actorY,
-          COLORS[Math.floor(Math.random() * COLORS.length)]
+          COLORS[Math.floor(Math.random() * COLORS.length)] // Random color for the actor
         );
-        elements.push(actor);
+        elements.push(actor); // Add the actor to the elements array
         if (currentBoundary) {
-          currentBoundary.embed(actor);
+          currentBoundary.embed(actor); // Embed the actor in the current boundary
         }
         break;
       case "usecase":
-        const useCaseName = parts.slice(1).join(" ");
+        // Create a use case element
+        const useCaseName = parts.slice(1).join(" "); // Get the use case name
         let useCaseX, useCaseY;
         if (currentBoundary) {
+          // Position use case within the current boundary
           const boundaryBBox = currentBoundary.getBBox();
           const boundaryPos = boundaryElementsPosition[currentBoundary.attr("label/text")];
           useCaseX = boundaryPos.x;
           useCaseY = boundaryPos.y;
+          // Update the position for the next element within the boundary
           boundaryElementsPosition[currentBoundary.attr("label/text")].x += globalOffsetX;
           if (boundaryElementsPosition[currentBoundary.attr("label/text")].x > boundaryBBox.x + boundaryBBox.width - boundaryPadding) {
+            // Move to the next row if the current row is full
             boundaryElementsPosition[currentBoundary.attr("label/text")].x = boundaryBBox.x + boundaryPadding;
             boundaryElementsPosition[currentBoundary.attr("label/text")].y += globalOffsetY;
           }
         } else {
+          // Position use case globally
           useCaseX = globalX;
           useCaseY = globalY;
           globalX += globalOffsetX;
           if (globalX > 800) {
+            // Move to the next row if the current row is full
             globalX = 50;
             globalY += globalOffsetY;
           }
@@ -716,28 +730,29 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
           useCaseX,
           useCaseY
         );
-        elements.push(useCase);
+        elements.push(useCase); // Add the use case to the elements array
         if (currentBoundary) {
-          currentBoundary.embed(useCase);
+          currentBoundary.embed(useCase); // Embed the use case in the current boundary
         }
         break;
       case "link":
+        // Create a link between two elements
         const sourceName = parts[1];
         const targetName = parts[2];
-        const source = elements.find((el) => el.attr("label/text") === sourceName);
-        const target = elements.find((el) => el.attr("label/text") === targetName);
+        const source = elements.find((el) => el.attr("label/text") === sourceName); // Find the source element by name
+        const target = elements.find((el) => el.attr("label/text") === targetName); // Find the target element by name
         if (source && target) {
-          const link = createUse(source, target);
-          links.push(link);
+          const link = createUse(source, target); // Create a link between source and target
+          links.push(link); // Add the link to the links array
         }
         break;
       default:
-        console.error("Unknown command:", command);
+        console.error("Unknown command:", command); // Handle unknown commands
     }
   });
 
-  graph.clear();
-  graph.addCells([...elements, ...links]);
-  fillUseCaseColors();
-  scaleToFit();
+  graph.clear(); // Clear the graph before adding new elements
+  graph.addCells([...elements, ...links]); // Add all elements and links to the graph
+  fillUseCaseColors(); // Set colors for use cases based on their connections
+  scaleToFit(); // Scale the diagram to fit the available space
 });
