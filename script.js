@@ -617,6 +617,12 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
   const links = [];
   const boundaries = {};
   let currentBoundary = null;
+  let globalX = 50;
+  let globalY = 50;
+  const globalOffsetX = 150;
+  const globalOffsetY = 150;
+  const boundaryPadding = 20;
+  const boundaryElementsPosition = {}; // To track positioning within boundaries
 
   lines.forEach((line) => {
     const trimmedLine = line.trim();
@@ -632,8 +638,8 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
             height: 200,
           },
           position: {
-            x: Math.random() * 800,
-            y: Math.random() * 1000,
+            x: globalX,
+            y: globalY,
           },
           attrs: {
             label: {
@@ -643,17 +649,39 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         });
         elements.push(boundary);
         boundaries[boundaryName] = boundary;
+        boundaryElementsPosition[boundaryName] = { x: boundary.position().x + boundaryPadding, y: boundary.position().y + boundaryPadding };
         currentBoundary = boundary;
+        globalY += boundary.size().height + globalOffsetY;
         break;
       case "endboundary":
         currentBoundary = null;
         break;
       case "actor":
         const actorName = parts.slice(1).join(" ");
+        let actorX, actorY;
+        if (currentBoundary) {
+          const boundaryBBox = currentBoundary.getBBox();
+          const boundaryPos = boundaryElementsPosition[currentBoundary.attr("label/text")];
+          actorX = boundaryPos.x;
+          actorY = boundaryPos.y;
+          boundaryElementsPosition[currentBoundary.attr("label/text")].x += globalOffsetX;
+          if (boundaryElementsPosition[currentBoundary.attr("label/text")].x > boundaryBBox.x + boundaryBBox.width - boundaryPadding) {
+            boundaryElementsPosition[currentBoundary.attr("label/text")].x = boundaryBBox.x + boundaryPadding;
+            boundaryElementsPosition[currentBoundary.attr("label/text")].y += globalOffsetY;
+          }
+        } else {
+          actorX = globalX;
+          actorY = globalY;
+          globalX += globalOffsetX;
+          if (globalX > 800) {
+            globalX = 50;
+            globalY += globalOffsetY;
+          }
+        }
         const actor = createActor(
           actorName,
-          Math.random() * 800,
-          Math.random() * 1000,
+          actorX,
+          actorY,
           COLORS[Math.floor(Math.random() * COLORS.length)]
         );
         elements.push(actor);
@@ -663,10 +691,30 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         break;
       case "usecase":
         const useCaseName = parts.slice(1).join(" ");
+        let useCaseX, useCaseY;
+        if (currentBoundary) {
+          const boundaryBBox = currentBoundary.getBBox();
+          const boundaryPos = boundaryElementsPosition[currentBoundary.attr("label/text")];
+          useCaseX = boundaryPos.x;
+          useCaseY = boundaryPos.y;
+          boundaryElementsPosition[currentBoundary.attr("label/text")].x += globalOffsetX;
+          if (boundaryElementsPosition[currentBoundary.attr("label/text")].x > boundaryBBox.x + boundaryBBox.width - boundaryPadding) {
+            boundaryElementsPosition[currentBoundary.attr("label/text")].x = boundaryBBox.x + boundaryPadding;
+            boundaryElementsPosition[currentBoundary.attr("label/text")].y += globalOffsetY;
+          }
+        } else {
+          useCaseX = globalX;
+          useCaseY = globalY;
+          globalX += globalOffsetX;
+          if (globalX > 800) {
+            globalX = 50;
+            globalY += globalOffsetY;
+          }
+        }
         const useCase = createUseCase(
           useCaseName,
-          Math.random() * 800,
-          Math.random() * 1000
+          useCaseX,
+          useCaseY
         );
         elements.push(useCase);
         if (currentBoundary) {
