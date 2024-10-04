@@ -640,6 +640,34 @@ function getElementPosition(boundary, boundaryElementsPosition, globalX, globalY
   return { x: posX, y: posY, globalX, globalY };
 }
 
+// Helper function to calculate boundary size based on the number of elements inside it
+function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX, globalOffsetY) {
+  if (boundaryElements.length === 0) {
+    return { width: 300, height: 200 }; // Default size if no elements
+  }
+
+  let maxX = 0;
+  let maxY = 0;
+
+  boundaryElements.forEach((element) => {
+    const bbox = element.getBBox();
+    const elementRight = bbox.x + bbox.width;
+    const elementBottom = bbox.y + bbox.height;
+
+    if (elementRight > maxX) {
+      maxX = elementRight;
+    }
+    if (elementBottom > maxY) {
+      maxY = elementBottom;
+    }
+  });
+
+  return {
+    width: maxX - boundaryElements[0].position().x + boundaryPadding + globalOffsetX,
+    height: maxY - boundaryElements[0].position().y + boundaryPadding + globalOffsetY,
+  };
+}
+
 document.getElementById("generate-diagram").addEventListener("click", () => {
   const input = document.getElementById("diagram-input").value;
   const lines = input.split("\n"); // Split the input into lines
@@ -653,6 +681,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
   const globalOffsetY = 150; // Vertical spacing between elements
   const boundaryPadding = 20; // Padding for elements inside boundaries
   const boundaryElementsPosition = {}; // To track positioning within boundaries
+  const boundaryElements = {}; // To store elements within each boundary
 
   lines.forEach((line) => {
     const trimmedLine = line.trim(); // Remove any extra spaces from the line
@@ -665,8 +694,8 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         const boundaryName = parts.slice(1).join(" "); // Get the boundary name
         const boundary = new Boundary({
           size: {
-            width: 300, // Width of the boundary box
-            height: 200, // Height of the boundary box
+            width: 300, // Initial width of the boundary box
+            height: 200, // Initial height of the boundary box
           },
           position: {
             x: globalX,
@@ -681,11 +710,17 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         elements.push(boundary); // Add the boundary to the elements array
         boundaries[boundaryName] = boundary; // Store the boundary by name
         boundaryElementsPosition[boundaryName] = { x: boundary.position().x + boundaryPadding, y: boundary.position().y + boundaryPadding }; // Initialize position tracking for elements inside the boundary
+        boundaryElements[boundaryName] = []; // Initialize the list of elements inside the boundary
         currentBoundary = boundary; // Set the current boundary context
         globalY += boundary.size().height + globalOffsetY; // Update global Y position for the next element
         break;
       case "endboundary":
-        // End the current boundary context
+        // End the current boundary context and adjust its size
+        if (currentBoundary) {
+          const boundaryName = currentBoundary.attr("label/text");
+          const size = calculateBoundarySize(boundaryElements[boundaryName], boundaryPadding, globalOffsetX, globalOffsetY);
+          currentBoundary.resize(size.width, size.height); // Resize boundary to fit its contents
+        }
         currentBoundary = null;
         break;
       case "actor":
@@ -703,6 +738,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         elements.push(actor); // Add the actor to the elements array
         if (currentBoundary) {
           currentBoundary.embed(actor); // Embed the actor in the current boundary
+          boundaryElements[currentBoundary.attr("label/text")].push(actor); // Add actor to boundary elements list
         }
         break;
       case "usecase":
@@ -719,6 +755,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         elements.push(useCase); // Add the use case to the elements array
         if (currentBoundary) {
           currentBoundary.embed(useCase); // Embed the use case in the current boundary
+          boundaryElements[currentBoundary.attr("label/text")].push(useCase); // Add use case to boundary elements list
         }
         break;
       case "link":
