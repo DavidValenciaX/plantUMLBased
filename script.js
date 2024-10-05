@@ -666,8 +666,6 @@ function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX,
   };
 }
 
-// ... Código anterior permanece igual ...
-
 document.getElementById("generate-diagram").addEventListener("click", () => {
   const input = document.getElementById("diagram-input").value;
   const lines = input.split("\n");
@@ -687,7 +685,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
   lines.forEach((line) => {
     const trimmedLine = line.trim();
     if (!trimmedLine || trimmedLine.startsWith("//")) return; // Saltar líneas vacías o comentarios
-
+  
     let match;
     if ((match = trimmedLine.match(/^rectangle\s+(".*?"|\S+)\s*\{$/i))) {
       // Inicio de un boundary
@@ -797,19 +795,21 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       const sourceName = match[1].replace(/"/g, "");
       const targetName = match[2].replace(/"/g, "");
       const linkType = match[3] ? match[3].toLowerCase() : null;
-
+  
       const source =
         aliases[sourceName] ||
         elements.find((el) => el.attr("label/text") === sourceName);
       const target =
         aliases[targetName] ||
         elements.find((el) => el.attr("label/text") === targetName);
-
+  
       if (source && target) {
         let link;
-        if (linkType === "include") {
+        if (linkType === "include" || linkType === "<<include>>") {
+          // Modificación: aceptar también <<include>>
           link = createInclude(source, target);
-        } else if (linkType === "extend") {
+        } else if (linkType === "extend" || linkType === "<<extend>>") {
+          // Modificación: aceptar también <<extend>>
           link = createExtend(source, target);
         } else {
           link = createUse(source, target);
@@ -823,7 +823,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
     } else {
       console.error("Comando o sintaxis desconocida:", trimmedLine);
     }
-  });
+  });  
 
   graph.clear();
   graph.addCells([...elements, ...links]);
