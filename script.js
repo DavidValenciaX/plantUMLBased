@@ -668,6 +668,8 @@ function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX,
   };
 }
 
+// ... Código anterior permanece igual ...
+
 document.getElementById("generate-diagram").addEventListener("click", () => {
   const input = document.getElementById("diagram-input").value;
   const lines = input.split("\n");
@@ -715,7 +717,6 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         };
         boundaryElements[boundaryName] = [];
         currentBoundary = boundary;
-        // No actualizar globalY aquí
         break;
       case "endboundary":
         // Terminar el boundary actual y ajustar su tamaño
@@ -728,7 +729,6 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
             globalOffsetY
           );
           currentBoundary.resize(size.width, size.height);
-          // Ahora actualizar globalY basado en el nuevo tamaño del boundary
           globalY =
             currentBoundary.position().y +
             currentBoundary.size().height +
@@ -800,6 +800,36 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         if (source && target) {
           const link = createUse(source, target);
           links.push(link);
+        }
+        break;
+      case "include":
+        // Crear un enlace de inclusión entre dos casos de uso
+        const includeSourceName = parts[1];
+        const includeTargetName = parts[2];
+        const includeSource = elements.find(
+          (el) => el.attr("label/text") === includeSourceName
+        );
+        const includeTarget = elements.find(
+          (el) => el.attr("label/text") === includeTargetName
+        );
+        if (includeSource && includeTarget) {
+          const includeLink = createInclude(includeSource, includeTarget);
+          links.push(includeLink);
+        }
+        break;
+      case "extend":
+        // Crear un enlace de extensión entre dos casos de uso
+        const extendSourceName = parts[1];
+        const extendTargetName = parts[2];
+        const extendSource = elements.find(
+          (el) => el.attr("label/text") === extendSourceName
+        );
+        const extendTarget = elements.find(
+          (el) => el.attr("label/text") === extendTargetName
+        );
+        if (extendSource && extendTarget) {
+          const extendLink = createExtend(extendSource, extendTarget);
+          links.push(extendLink);
         }
         break;
       default:
