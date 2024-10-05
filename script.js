@@ -386,32 +386,47 @@ function createUseCase(useCase, x, y) {
   });
 }
 
-function createUse(source, target) {
+function createUse(source, target, isDashed = false) {
   return new Use({
     source: {
       id: source.id,
       connectionPoint: {
         name: "rectangle",
         args: {
-          offset: 5
-        }
-      }
+          offset: 5,
+        },
+      },
     },
-    target: { id: target.id }
+    target: { id: target.id },
+    attrs: {
+      line: {
+        strokeDasharray: isDashed ? "6,2" : "",
+      },
+    },
   });
 }
 
-function createInclude(source, target) {
+function createInclude(source, target, isDashed = true) {
   return new Include({
     source: { id: source.id },
-    target: { id: target.id }
+    target: { id: target.id },
+    attrs: {
+      line: {
+        strokeDasharray: isDashed ? "6,2" : "",
+      },
+    },
   });
 }
 
-function createExtend(source, target) {
+function createExtend(source, target, isDashed = true) {
   return new Extend({
     source: { id: source.id },
-    target: { id: target.id }
+    target: { id: target.id },
+    attrs: {
+      line: {
+        strokeDasharray: isDashed ? "6,2" : "",
+      },
+    },
   });
 }
 
@@ -793,13 +808,14 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       }
     } else if (
       (match = trimmedLine.match(
-        /^(".*?"|\S+)\s*-->\s*(".*?"|\S+)(?:\s*:\s*(.*))?$/i
+        /^(".*?"|\S+)\s*(-->|\.{2}>)\s*(".*?"|\S+)(?:\s*:\s*(.*))?$/i
       ))
     ) {
       // Definición de un enlace
       const sourceName = match[1].replace(/"/g, "");
-      const targetName = match[2].replace(/"/g, "");
-      let linkType = match[3] ? match[3].toLowerCase() : null;
+      const operator = match[2];
+      const targetName = match[3].replace(/"/g, "");
+      let linkType = match[4] ? match[4].toLowerCase() : null;
 
       // Limpiar linkType para admitir <<include>> y <<extend>>
       if (linkType) {
@@ -815,17 +831,18 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
 
       if (source && target) {
         let link;
+        const isDashed = operator === "..>";
         if (linkType === "include") {
-          link = createInclude(source, target);
+          link = createInclude(source, target, isDashed);
         } else if (linkType === "extend") {
-          link = createExtend(source, target);
+          link = createExtend(source, target, isDashed);
         } else {
-          link = createUse(source, target);
+          link = createUse(source, target, isDashed);
         }
         links.push(link);
       } else {
         console.error(
-          `No se encontraron elementos para el enlace: ${sourceName} --> ${targetName}`
+          `No se encontraron elementos para el enlace: ${sourceName} ${operator} ${targetName}`
         );
       }
     } else {
