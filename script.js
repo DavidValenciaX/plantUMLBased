@@ -666,12 +666,15 @@ function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX,
   };
 }
 
+// ... Código anterior permanece igual ...
+
 document.getElementById("generate-diagram").addEventListener("click", () => {
   const input = document.getElementById("diagram-input").value;
   const lines = input.split("\n");
   const elements = [];
   const links = [];
   const boundaries = {};
+  const aliases = {}; // Mapeo de alias a elementos
   let currentBoundary = null;
   let globalX = 50;
   let globalY = 50;
@@ -683,154 +686,142 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
 
   lines.forEach((line) => {
     const trimmedLine = line.trim();
-    const parts = trimmedLine.match(/(?:"[^"]+"|\S)+/g);
-    if (!parts) return;
-    const command = parts[0].toLowerCase();
+    if (!trimmedLine || trimmedLine.startsWith("//")) return; // Saltar líneas vacías o comentarios
 
-    switch (command) {
-      case "boundary":
-        // Crear un boundary
-        const boundaryName = parts.slice(1).join(" ").replace(/"/g, "");
-        const boundary = new Boundary({
-          size: {
-            width: 300,
-            height: 200,
+    let match;
+    if ((match = trimmedLine.match(/^rectangle\s+(".*?"|\S+)\s*\{$/i))) {
+      // Inicio de un boundary
+      const boundaryName = match[1].replace(/"/g, "");
+      const boundary = new Boundary({
+        size: {
+          width: 300,
+          height: 200,
+        },
+        position: {
+          x: globalX,
+          y: globalY,
+        },
+        attrs: {
+          label: {
+            text: boundaryName,
           },
-          position: {
-            x: globalX,
-            y: globalY,
-          },
-          attrs: {
-            label: {
-              text: boundaryName,
-            },
-          },
-        });
-        elements.push(boundary);
-        boundaries[boundaryName] = boundary;
-        boundaryElementsPosition[boundaryName] = {
-          x: boundary.position().x + boundaryPadding,
-          y: boundary.position().y + boundaryPadding,
-        };
-        boundaryElements[boundaryName] = [];
-        currentBoundary = boundary;
-        break;
-      case "endboundary":
-        // Terminar el boundary actual y ajustar su tamaño
-        if (currentBoundary) {
-          const boundaryName = currentBoundary.attr("label/text");
-          const size = calculateBoundarySize(
-            boundaryElements[boundaryName],
-            boundaryPadding,
-            globalOffsetX,
-            globalOffsetY
-          );
-          currentBoundary.resize(size.width, size.height);
-          globalY =
-            currentBoundary.position().y +
-            currentBoundary.size().height +
-            globalOffsetY;
-        }
-        currentBoundary = null;
-        break;
-      case "actor":
-        // Crear un actor
-        const actorName = parts.slice(1).join(" ").replace(/"/g, "");
-        const actorPositionData = getElementPosition(
-          currentBoundary,
-          boundaryElementsPosition,
-          globalX,
-          globalY,
+        },
+      });
+      elements.push(boundary);
+      boundaries[boundaryName] = boundary;
+      boundaryElementsPosition[boundaryName] = {
+        x: boundary.position().x + boundaryPadding,
+        y: boundary.position().y + boundaryPadding,
+      };
+      boundaryElements[boundaryName] = [];
+      currentBoundary = boundary;
+    } else if (trimmedLine === "}") {
+      // Fin del boundary actual
+      if (currentBoundary) {
+        const boundaryName = currentBoundary.attr("label/text");
+        const size = calculateBoundarySize(
+          boundaryElements[boundaryName],
+          boundaryPadding,
           globalOffsetX,
-          globalOffsetY,
-          boundaryPadding
+          globalOffsetY
         );
-        globalX = actorPositionData.globalX;
-        globalY = actorPositionData.globalY;
-        const actor = createActor(
-          actorName,
-          actorPositionData.x,
-          actorPositionData.y,
-          COLORS[Math.floor(Math.random() * COLORS.length)]
-        );
-        elements.push(actor);
-        if (currentBoundary) {
-          currentBoundary.embed(actor);
-          boundaryElements[currentBoundary.attr("label/text")].push(actor);
+        currentBoundary.resize(size.width, size.height);
+        globalY =
+          currentBoundary.position().y +
+          currentBoundary.size().height +
+          globalOffsetY;
+      }
+      currentBoundary = null;
+    } else if ((match = trimmedLine.match(/^actor\s+(".*?"|\S+)$/i))) {
+      // Definición de un actor
+      const actorName = match[1].replace(/"/g, "");
+      const actorPositionData = getElementPosition(
+        currentBoundary,
+        boundaryElementsPosition,
+        globalX,
+        globalY,
+        globalOffsetX,
+        globalOffsetY,
+        boundaryPadding
+      );
+      globalX = actorPositionData.globalX;
+      globalY = actorPositionData.globalY;
+      const actor = createActor(
+        actorName,
+        actorPositionData.x,
+        actorPositionData.y,
+        COLORS[Math.floor(Math.random() * COLORS.length)]
+      );
+      elements.push(actor);
+      aliases[actorName] = actor; // Guardar el actor en los alias
+      if (currentBoundary) {
+        currentBoundary.embed(actor);
+        boundaryElements[currentBoundary.attr("label/text")].push(actor);
+      }
+    } else if (
+      (match = trimmedLine.match(
+        /^usecase\s+(".*?"|\S+)(?:\s+as\s+(\S+))?$/i
+      ))
+    ) {
+      // Definición de un caso de uso
+      const useCaseName = match[1].replace(/"/g, "");
+      const alias = match[2] || useCaseName;
+      const useCasePositionData = getElementPosition(
+        currentBoundary,
+        boundaryElementsPosition,
+        globalX,
+        globalY,
+        globalOffsetX,
+        globalOffsetY,
+        boundaryPadding
+      );
+      globalX = useCasePositionData.globalX;
+      globalY = useCasePositionData.globalY;
+      const useCase = createUseCase(
+        useCaseName,
+        useCasePositionData.x,
+        useCasePositionData.y
+      );
+      elements.push(useCase);
+      aliases[alias] = useCase; // Guardar el caso de uso con su alias
+      if (currentBoundary) {
+        currentBoundary.embed(useCase);
+        boundaryElements[currentBoundary.attr("label/text")].push(useCase);
+      }
+    } else if (
+      (match = trimmedLine.match(
+        /^(".*?"|\S+)\s*-->\s*(".*?"|\S+)(?:\s*:\s*(\S+))?$/i
+      ))
+    ) {
+      // Definición de un enlace
+      const sourceName = match[1].replace(/"/g, "");
+      const targetName = match[2].replace(/"/g, "");
+      const linkType = match[3] ? match[3].toLowerCase() : null;
+
+      const source =
+        aliases[sourceName] ||
+        elements.find((el) => el.attr("label/text") === sourceName);
+      const target =
+        aliases[targetName] ||
+        elements.find((el) => el.attr("label/text") === targetName);
+
+      if (source && target) {
+        let link;
+        if (linkType === "include") {
+          link = createInclude(source, target);
+        } else if (linkType === "extend") {
+          link = createExtend(source, target);
+        } else {
+          link = createUse(source, target);
         }
-        break;
-      case "usecase":
-        // Crear un caso de uso
-        const useCaseName = parts.slice(1).join(" ").replace(/"/g, "");
-        const useCasePositionData = getElementPosition(
-          currentBoundary,
-          boundaryElementsPosition,
-          globalX,
-          globalY,
-          globalOffsetX,
-          globalOffsetY,
-          boundaryPadding
+        links.push(link);
+      } else {
+        console.error(
+          `No se encontraron elementos para el enlace: ${sourceName} --> ${targetName}`
         );
-        globalX = useCasePositionData.globalX;
-        globalY = useCasePositionData.globalY;
-        const useCase = createUseCase(
-          useCaseName,
-          useCasePositionData.x,
-          useCasePositionData.y
-        );
-        elements.push(useCase);
-        if (currentBoundary) {
-          currentBoundary.embed(useCase);
-          boundaryElements[currentBoundary.attr("label/text")].push(useCase);
-        }
-        break;
-      case "link":
-        // Crear un enlace entre dos elementos
-        const sourceName = parts[1].replace(/"/g, "");
-        const targetName = parts[2].replace(/"/g, "");
-        const source = elements.find(
-          (el) => el.attr("label/text") === sourceName
-        );
-        const target = elements.find(
-          (el) => el.attr("label/text") === targetName
-        );
-        if (source && target) {
-          const link = createUse(source, target);
-          links.push(link);
-        }
-        break;
-      case "include":
-        // Crear un enlace de inclusión entre dos casos de uso
-        const includeSourceName = parts[1].replace(/"/g, "");
-        const includeTargetName = parts[2].replace(/"/g, "");
-        const includeSource = elements.find(
-          (el) => el.attr("label/text") === includeSourceName
-        );
-        const includeTarget = elements.find(
-          (el) => el.attr("label/text") === includeTargetName
-        );
-        if (includeSource && includeTarget) {
-          const includeLink = createInclude(includeSource, includeTarget);
-          links.push(includeLink);
-        }
-        break;
-      case "extend":
-        // Crear un enlace de extensión entre dos casos de uso
-        const extendSourceName = parts[1].replace(/"/g, "");
-        const extendTargetName = parts[2].replace(/"/g, "");
-        const extendSource = elements.find(
-          (el) => el.attr("label/text") === extendSourceName
-        );
-        const extendTarget = elements.find(
-          (el) => el.attr("label/text") === extendTargetName
-        );
-        if (extendSource && extendTarget) {
-          const extendLink = createExtend(extendSource, extendTarget);
-          links.push(extendLink);
-        }
-        break;
-      default:
-        console.error("Comando desconocido:", command);
+      }
+    } else {
+      console.error("Comando o sintaxis desconocida:", trimmedLine);
     }
   });
 
