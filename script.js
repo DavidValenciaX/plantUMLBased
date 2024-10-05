@@ -666,8 +666,6 @@ function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX,
   };
 }
 
-// ... Código anterior permanece igual ...
-
 document.getElementById("generate-diagram").addEventListener("click", () => {
   const input = document.getElementById("diagram-input").value;
   const lines = input.split("\n");
@@ -685,13 +683,14 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
 
   lines.forEach((line) => {
     const trimmedLine = line.trim();
-    const parts = trimmedLine.split(" ");
+    const parts = trimmedLine.match(/(?:"[^"]+"|\S)+/g);
+    if (!parts) return;
     const command = parts[0].toLowerCase();
 
     switch (command) {
       case "boundary":
         // Crear un boundary
-        const boundaryName = parts.slice(1).join(" ");
+        const boundaryName = parts.slice(1).join(" ").replace(/"/g, "");
         const boundary = new Boundary({
           size: {
             width: 300,
@@ -736,7 +735,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         break;
       case "actor":
         // Crear un actor
-        const actorName = parts.slice(1).join(" ");
+        const actorName = parts.slice(1).join(" ").replace(/"/g, "");
         const actorPositionData = getElementPosition(
           currentBoundary,
           boundaryElementsPosition,
@@ -762,7 +761,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         break;
       case "usecase":
         // Crear un caso de uso
-        const useCaseName = parts.slice(1).join(" ");
+        const useCaseName = parts.slice(1).join(" ").replace(/"/g, "");
         const useCasePositionData = getElementPosition(
           currentBoundary,
           boundaryElementsPosition,
@@ -787,8 +786,8 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         break;
       case "link":
         // Crear un enlace entre dos elementos
-        const sourceName = parts[1];
-        const targetName = parts[2];
+        const sourceName = parts[1].replace(/"/g, "");
+        const targetName = parts[2].replace(/"/g, "");
         const source = elements.find(
           (el) => el.attr("label/text") === sourceName
         );
@@ -802,8 +801,8 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         break;
       case "include":
         // Crear un enlace de inclusión entre dos casos de uso
-        const includeSourceName = parts[1];
-        const includeTargetName = parts[2];
+        const includeSourceName = parts[1].replace(/"/g, "");
+        const includeTargetName = parts[2].replace(/"/g, "");
         const includeSource = elements.find(
           (el) => el.attr("label/text") === includeSourceName
         );
@@ -817,8 +816,8 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         break;
       case "extend":
         // Crear un enlace de extensión entre dos casos de uso
-        const extendSourceName = parts[1];
-        const extendTargetName = parts[2];
+        const extendSourceName = parts[1].replace(/"/g, "");
+        const extendTargetName = parts[2].replace(/"/g, "");
         const extendSource = elements.find(
           (el) => el.attr("label/text") === extendSourceName
         );
