@@ -685,7 +685,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
   lines.forEach((line) => {
     const trimmedLine = line.trim();
     if (!trimmedLine || trimmedLine.startsWith("//")) return; // Saltar líneas vacías o comentarios
-  
+
     let match;
     if ((match = trimmedLine.match(/^rectangle\s+(".*?"|\S+)\s*\{$/i))) {
       // Inicio de un boundary
@@ -730,9 +730,14 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
           globalOffsetY;
       }
       currentBoundary = null;
-    } else if ((match = trimmedLine.match(/^actor\s+(".*?"|\S+)$/i))) {
-      // Definición de un actor
+    } else if (
+      (match = trimmedLine.match(
+        /^actor\s+(".*?"|\S+)(?:\s+as\s+(\S+))?$/i
+      ))
+    ) {
+      // Definición de un actor con alias opcional
       const actorName = match[1].replace(/"/g, "");
+      const alias = match[2] || actorName;
       const actorPositionData = getElementPosition(
         currentBoundary,
         boundaryElementsPosition,
@@ -751,7 +756,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         COLORS[Math.floor(Math.random() * COLORS.length)]
       );
       elements.push(actor);
-      aliases[actorName] = actor; // Guardar el actor en los alias
+      aliases[alias] = actor; // Guardar el actor en los alias
       if (currentBoundary) {
         currentBoundary.embed(actor);
         boundaryElements[currentBoundary.attr("label/text")].push(actor);
@@ -788,28 +793,31 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       }
     } else if (
       (match = trimmedLine.match(
-        /^(".*?"|\S+)\s*-->\s*(".*?"|\S+)(?:\s*:\s*(\S+))?$/i
+        /^(".*?"|\S+)\s*-->\s*(".*?"|\S+)(?:\s*:\s*(.*))?$/i
       ))
     ) {
       // Definición de un enlace
       const sourceName = match[1].replace(/"/g, "");
       const targetName = match[2].replace(/"/g, "");
-      const linkType = match[3] ? match[3].toLowerCase() : null;
-  
+      let linkType = match[3] ? match[3].toLowerCase() : null;
+
+      // Limpiar linkType para admitir <<include>> y <<extend>>
+      if (linkType) {
+        linkType = linkType.replace(/<<|>>/g, "").trim();
+      }
+
       const source =
         aliases[sourceName] ||
         elements.find((el) => el.attr("label/text") === sourceName);
       const target =
         aliases[targetName] ||
         elements.find((el) => el.attr("label/text") === targetName);
-  
+
       if (source && target) {
         let link;
-        if (linkType === "include" || linkType === "<<include>>") {
-          // Modificación: aceptar también <<include>>
+        if (linkType === "include") {
           link = createInclude(source, target);
-        } else if (linkType === "extend" || linkType === "<<extend>>") {
-          // Modificación: aceptar también <<extend>>
+        } else if (linkType === "extend") {
           link = createExtend(source, target);
         } else {
           link = createUse(source, target);
@@ -823,7 +831,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
     } else {
       console.error("Comando o sintaxis desconocida:", trimmedLine);
     }
-  });  
+  });
 
   graph.clear();
   graph.addCells([...elements, ...links]);
