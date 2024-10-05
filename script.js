@@ -62,8 +62,6 @@ const paper = new dia.Paper({
   }
 });
 
-paperContainer.appendChild(paper.el);
-
 class Boundary extends dia.Element {
   defaults() {
     return {
