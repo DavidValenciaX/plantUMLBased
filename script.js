@@ -266,32 +266,7 @@ class Include extends shapes.standard.Link {
         attrs: {
           line: lineAttrs
         },
-        defaultLabel,
-        labels: [
-          {
-            attrs: {
-              labelText: {
-                text: "<<include>>",
-                annotations: [
-                  {
-                    start: 0,
-                    end: 2,
-                    attrs: {
-                      fill: COLORS[6]
-                    }
-                  },
-                  {
-                    start: 9,
-                    end: 11,
-                    attrs: {
-                      fill: COLORS[6]
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        ]
+        // Eliminamos labels por defecto
       },
       super.defaults
     );
@@ -306,32 +281,7 @@ class Extend extends shapes.standard.Link {
         attrs: {
           line: lineAttrs
         },
-        defaultLabel,
-        labels: [
-          {
-            attrs: {
-              labelText: {
-                text: "<<extend>>",
-                annotations: [
-                  {
-                    start: 0,
-                    end: 2,
-                    attrs: {
-                      fill: COLORS[6]
-                    }
-                  },
-                  {
-                    start: 8,
-                    end: 10,
-                    attrs: {
-                      fill: COLORS[6]
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        ]
+        // Eliminamos labels por defecto
       },
       super.defaults
     );
@@ -386,8 +336,8 @@ function createUseCase(useCase, x, y) {
   });
 }
 
-function createUse(source, target, isDashed = false) {
-  return new Use({
+function createUse(source, target, isDashed = false, label = null) {
+  const link = new Use({
     source: {
       id: source.id,
       connectionPoint: {
@@ -404,10 +354,43 @@ function createUse(source, target, isDashed = false) {
       },
     },
   });
+  if (label) {
+    link.labels([{
+      position: 0.5,
+      attrs: {
+        text: {
+          text: label,
+          fill: COLORS[7],
+          fontSize: 12,
+          fontFamily: "sans-serif",
+          textAnchor: "middle",
+          textVerticalAnchor: "middle"
+        },
+        rect: {
+          fill: COLORS[5],
+          ref: "text",
+          x: "calc(x - 2)",
+          y: "calc(y - 2)",
+          width: "calc(w + 4)",
+          height: "calc(h + 4)",
+        }
+      },
+      markup: util.svg`
+        <rect @selector="rect" />
+        <text @selector="text" />
+      `,
+    }]);
+  }
+  return link;
 }
 
-function createInclude(source, target, isDashed = true) {
-  return new Include({
+function createInclude(source, target, isDashed = true, label = null) {
+  let labelText = '<<include>>';
+  if (label) {
+    labelText += '\n' + label;
+  }
+
+  const link = new Include({
     source: { id: source.id },
     target: { id: target.id },
     attrs: {
@@ -416,10 +399,43 @@ function createInclude(source, target, isDashed = true) {
       },
     },
   });
+
+  link.labels([{
+    position: 0.5,
+    attrs: {
+      text: {
+        text: labelText,
+        fill: COLORS[7],
+        fontSize: 12,
+        fontFamily: "sans-serif",
+        textAnchor: "middle",
+        textVerticalAnchor: "middle"
+      },
+      rect: {
+        fill: COLORS[5],
+        ref: "text",
+        x: "calc(x - 2)",
+        y: "calc(y - 2)",
+        width: "calc(w + 4)",
+        height: "calc(h + 4)",
+      }
+    },
+    markup: util.svg`
+      <rect @selector="rect" />
+      <text @selector="text" />
+    `,
+  }]);
+  
+  return link;
 }
 
-function createExtend(source, target, isDashed = true) {
-  return new Extend({
+function createExtend(source, target, isDashed = true, label = null) {
+  let labelText = '<<extend>>';
+  if (label) {
+    labelText += '\n' + label;
+  }
+
+  const link = new Extend({
     source: { id: source.id },
     target: { id: target.id },
     attrs: {
@@ -428,6 +444,34 @@ function createExtend(source, target, isDashed = true) {
       },
     },
   });
+
+  link.labels([{
+    position: 0.5,
+    attrs: {
+      text: {
+        text: labelText,
+        fill: COLORS[7],
+        fontSize: 12,
+        fontFamily: "sans-serif",
+        textAnchor: "middle",
+        textVerticalAnchor: "middle"
+      },
+      rect: {
+        fill: COLORS[5],
+        ref: "text",
+        x: "calc(x - 2)",
+        y: "calc(y - 2)",
+        width: "calc(w + 4)",
+        height: "calc(h + 4)",
+      }
+    },
+    markup: util.svg`
+      <rect @selector="rect" />
+      <text @selector="text" />
+    `,
+  }]);
+  
+  return link;
 }
 
 const boundary = new Boundary({
@@ -806,7 +850,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         currentBoundary.embed(useCase);
         boundaryElements[currentBoundary.attr("label/text")].push(useCase);
       }
-    } else if (
+    }     else if (
       (match = trimmedLine.match(
         /^(".*?"|\S+)\s*(-->|\.{2}>)\s*(".*?"|\S+)(?:\s*:\s*(.*))?$/i
       ))
@@ -815,11 +859,20 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       const sourceName = match[1].replace(/"/g, "");
       const operator = match[2];
       const targetName = match[3].replace(/"/g, "");
-      let linkType = match[4] ? match[4].toLowerCase() : null;
+      let linkLabel = match[4] ? match[4].trim() : null;
 
-      // Limpiar linkType para admitir <<include>> y <<extend>>
-      if (linkType) {
-        linkType = linkType.replace(/<<|>>/g, "").trim();
+      // Determinar linkType y label
+      let linkType = null;
+      let additionalLabel = null;
+      if (linkLabel) {
+        const matchType = linkLabel.match(/^<<\s*(\w+)\s*>>/);
+        if (matchType) {
+          linkType = matchType[1].trim().toLowerCase();
+          additionalLabel = linkLabel.substring(matchType[0].length).trim();
+        } else {
+          linkType = null;
+          additionalLabel = linkLabel;
+        }
       }
 
       const source =
@@ -833,11 +886,11 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         let link;
         const isDashed = operator === "..>";
         if (linkType === "include") {
-          link = createInclude(source, target, isDashed);
+          link = createInclude(source, target, isDashed, additionalLabel);
         } else if (linkType === "extend") {
-          link = createExtend(source, target, isDashed);
+          link = createExtend(source, target, isDashed, additionalLabel);
         } else {
-          link = createUse(source, target, isDashed);
+          link = createUse(source, target, isDashed, linkLabel);
         }
         links.push(link);
       } else {
