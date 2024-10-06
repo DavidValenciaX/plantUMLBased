@@ -503,16 +503,25 @@ function adjustBoundarySizes() {
     const boundaryElements = boundary.getEmbeddedCells();
     if (boundaryElements.length === 0) return;
 
-    const elementsBBox = dia.BBox.union(
-      boundaryElements.map((el) => el.getBBox())
-    );
-    const padding = 20;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    boundaryElements.forEach((el) => {
+      const bbox = el.getBBox();
+      minX = Math.min(minX, bbox.x);
+      minY = Math.min(minY, bbox.y);
+      maxX = Math.max(maxX, bbox.x + bbox.width);
+      maxY = Math.max(maxY, bbox.y + bbox.height);
+    });
 
-    boundary.position(elementsBBox.x - padding, elementsBBox.y - padding);
-    boundary.resize(
-      elementsBBox.width + 2 * padding,
-      elementsBBox.height + 2 * padding
-    );
+    const padding = 20;
+    const elementsBBox = new joint.g.Rect({
+      x: minX - padding,
+      y: minY - padding,
+      width: maxX - minX + 2 * padding,
+      height: maxY - minY + 2 * padding
+    });
+
+    boundary.position(elementsBBox.x, elementsBBox.y);
+    boundary.resize(elementsBBox.width, elementsBBox.height);
   });
 }
 
