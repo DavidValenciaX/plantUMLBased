@@ -52,7 +52,7 @@ const paper = new dia.Paper({
   restrictTranslate: function (elementView) {
     const parent = elementView.model.getParentCell();
     if (parent) {
-      // use cases movement is constrained by the parent area
+      // El movimiento de los casos de uso está restringido al área del padre
       return parent.getBBox().inflate(-6);
     }
     return null;
@@ -233,32 +233,6 @@ const lineAttrs = {
   }
 };
 
-const defaultLabel = {
-  position: 0.5,
-  markup: util.svg`
-        <rect @selector="labelBody" />
-        <text @selector="labelText" />
-    `,
-  attrs: {
-    labelText: {
-      fill: COLORS[7],
-      fontSize: 12,
-      fontFamily: "sans-serif",
-      fontWeight: "bold",
-      textAnchor: "middle",
-      textVerticalAnchor: "middle"
-    },
-    labelBody: {
-      ref: "labelText",
-      x: "calc(x - 2)",
-      y: "calc(y - 2)",
-      width: "calc(w + 4)",
-      height: "calc(h + 4)",
-      fill: COLORS[5]
-    }
-  }
-};
-
 class Include extends shapes.standard.Link {
   defaults() {
     return util.defaultsDeep(
@@ -266,7 +240,7 @@ class Include extends shapes.standard.Link {
         type: "Include",
         attrs: {
           line: lineAttrs
-        },
+        }
         // Eliminamos labels por defecto
       },
       super.defaults
@@ -281,7 +255,7 @@ class Extend extends shapes.standard.Link {
         type: "Extend",
         attrs: {
           line: lineAttrs
-        },
+        }
         // Eliminamos labels por defecto
       },
       super.defaults
@@ -298,15 +272,11 @@ Object.assign(shapes, {
   Extend
 });
 
-function createActor(name, x, y, color) {
+function createActor(name, color) {
   return new Actor({
     size: {
       width: 40,
       height: 80
-    },
-    position: {
-      x,
-      y
     },
     attrs: {
       head: {
@@ -319,15 +289,11 @@ function createActor(name, x, y, color) {
   });
 }
 
-function createUseCase(useCase, x, y) {
+function createUseCase(useCase) {
   return new UseCase({
     size: {
       width: 125,
       height: 75
-    },
-    position: {
-      x,
-      y
     },
     attrs: {
       label: {
@@ -344,23 +310,71 @@ function createUse(source, target, isDashed = false, label = null) {
       connectionPoint: {
         name: "rectangle",
         args: {
-          offset: 5,
-        },
-      },
+          offset: 5
+        }
+      }
     },
     target: { id: target.id },
     attrs: {
       line: {
-        strokeDasharray: isDashed ? "6,2" : "",
-      },
-    },
+        strokeDasharray: isDashed ? "6,2" : ""
+      }
+    }
   });
   if (label) {
-    link.labels([{
+    link.labels([
+      {
+        position: 0.5,
+        attrs: {
+          text: {
+            text: label,
+            fill: COLORS[7],
+            fontSize: 12,
+            fontFamily: "sans-serif",
+            textAnchor: "middle",
+            textVerticalAnchor: "middle"
+          },
+          rect: {
+            fill: COLORS[5],
+            ref: "text",
+            x: "calc(x - 2)",
+            y: "calc(y - 2)",
+            width: "calc(w + 4)",
+            height: "calc(h + 4)"
+          }
+        },
+        markup: util.svg`
+          <rect @selector="rect" />
+          <text @selector="text" />
+        `
+      }
+    ]);
+  }
+  return link;
+}
+
+function createInclude(source, target, isDashed = true, label = null) {
+  let labelText = "<<include>>";
+  if (label) {
+    labelText += "\n" + label;
+  }
+
+  const link = new Include({
+    source: { id: source.id },
+    target: { id: target.id },
+    attrs: {
+      line: {
+        strokeDasharray: isDashed ? "6,2" : ""
+      }
+    }
+  });
+
+  link.labels([
+    {
       position: 0.5,
       attrs: {
         text: {
-          text: label,
+          text: labelText,
           fill: COLORS[7],
           fontSize: 12,
           fontFamily: "sans-serif",
@@ -373,67 +387,23 @@ function createUse(source, target, isDashed = false, label = null) {
           x: "calc(x - 2)",
           y: "calc(y - 2)",
           width: "calc(w + 4)",
-          height: "calc(h + 4)",
+          height: "calc(h + 4)"
         }
       },
       markup: util.svg`
         <rect @selector="rect" />
         <text @selector="text" />
-      `,
-    }]);
-  }
-  return link;
-}
+      `
+    }
+  ]);
 
-function createInclude(source, target, isDashed = true, label = null) {
-  let labelText = '<<include>>';
-  if (label) {
-    labelText += '\n' + label;
-  }
-
-  const link = new Include({
-    source: { id: source.id },
-    target: { id: target.id },
-    attrs: {
-      line: {
-        strokeDasharray: isDashed ? "6,2" : "",
-      },
-    },
-  });
-
-  link.labels([{
-    position: 0.5,
-    attrs: {
-      text: {
-        text: labelText,
-        fill: COLORS[7],
-        fontSize: 12,
-        fontFamily: "sans-serif",
-        textAnchor: "middle",
-        textVerticalAnchor: "middle"
-      },
-      rect: {
-        fill: COLORS[5],
-        ref: "text",
-        x: "calc(x - 2)",
-        y: "calc(y - 2)",
-        width: "calc(w + 4)",
-        height: "calc(h + 4)",
-      }
-    },
-    markup: util.svg`
-      <rect @selector="rect" />
-      <text @selector="text" />
-    `,
-  }]);
-  
   return link;
 }
 
 function createExtend(source, target, isDashed = true, label = null) {
-  let labelText = '<<extend>>';
+  let labelText = "<<extend>>";
   if (label) {
-    labelText += '\n' + label;
+    labelText += "\n" + label;
   }
 
   const link = new Extend({
@@ -441,162 +411,45 @@ function createExtend(source, target, isDashed = true, label = null) {
     target: { id: target.id },
     attrs: {
       line: {
-        strokeDasharray: isDashed ? "6,2" : "",
-      },
-    },
+        strokeDasharray: isDashed ? "6,2" : ""
+      }
+    }
   });
 
-  link.labels([{
-    position: 0.5,
-    attrs: {
-      text: {
-        text: labelText,
-        fill: COLORS[7],
-        fontSize: 12,
-        fontFamily: "sans-serif",
-        textAnchor: "middle",
-        textVerticalAnchor: "middle"
+  link.labels([
+    {
+      position: 0.5,
+      attrs: {
+        text: {
+          text: labelText,
+          fill: COLORS[7],
+          fontSize: 12,
+          fontFamily: "sans-serif",
+          textAnchor: "middle",
+          textVerticalAnchor: "middle"
+        },
+        rect: {
+          fill: COLORS[5],
+          ref: "text",
+          x: "calc(x - 2)",
+          y: "calc(y - 2)",
+          width: "calc(w + 4)",
+          height: "calc(h + 4)"
+        }
       },
-      rect: {
-        fill: COLORS[5],
-        ref: "text",
-        x: "calc(x - 2)",
-        y: "calc(y - 2)",
-        width: "calc(w + 4)",
-        height: "calc(h + 4)",
-      }
-    },
-    markup: util.svg`
-      <rect @selector="rect" />
-      <text @selector="text" />
-    `,
-  }]);
-  
+      markup: util.svg`
+        <rect @selector="rect" />
+        <text @selector="text" />
+      `
+    }
+  ]);
+
   return link;
 }
 
-const boundary = new Boundary({
-  size: {
-    width: 800,
-    height: 1000
-  },
-  position: {
-    x: 200,
-    y: 100
-  },
-  attrs: {
-    label: {
-      text: "JointJS Support System"
-    }
-  }
-});
-
-const packageHolder = createActor(
-  "JointJS+ Support Package Subscriber",
-  100,
-  400,
-  COLORS[0]
-);
-const jointJSPlusUser = createActor(
-  "JointJS+ User\n(Commercial)",
-  100,
-  700,
-  COLORS[1]
-);
-const jointJSUser = createActor(
-  "JointJS User\n(Open Source)",
-  100,
-  930,
-  COLORS[2]
-);
-const techSupport = createActor(
-  "JointJS Technical Support",
-  1075,
-  550,
-  COLORS[3]
-);
-const community = createActor("Community", 1075, 930, COLORS[4]);
-
-const requestCodeReview = createUseCase("Request Code Review", 400, 150);
-const reviewCode = createUseCase("Review Code", 700, 150);
-const giveFeedback = createUseCase("Give Feedback", 700, 290);
-const proposeChanges = createUseCase("Propose Changes", 700, 425);
-const requestConferenceCall = createUseCase(
-  "Request Conference Call",
-  400,
-  350
-);
-const proposeTimeAndDateOfCall = createUseCase(
-  "Propose Time and Date of Call",
-  400,
-  525
-);
-const attendConferenceCall = createUseCase("Attend Conference Call", 400, 700);
-const contactViaTicketingSystem = createUseCase(
-  "Contact via Ticketing System",
-  400,
-  825
-);
-const respondToTicket = createUseCase("Respond to Ticket", 700, 825);
-const askGithubDiscussion = createUseCase("Ask on GitHub Discussion", 400, 950);
-const respondToDiscussion = createUseCase("Respond to Discussion", 700, 950);
-
-boundary.embed([
-  requestCodeReview,
-  reviewCode,
-  giveFeedback,
-  proposeChanges,
-  requestConferenceCall,
-  proposeTimeAndDateOfCall,
-  attendConferenceCall,
-  contactViaTicketingSystem,
-  respondToTicket,
-  askGithubDiscussion,
-  respondToDiscussion
-]);
-
-graph.addCells([
-  boundary,
-  packageHolder,
-  jointJSPlusUser,
-  jointJSUser,
-  techSupport,
-  community,
-  requestCodeReview,
-  reviewCode,
-  giveFeedback,
-  proposeChanges,
-  requestConferenceCall,
-  proposeTimeAndDateOfCall,
-  attendConferenceCall,
-  contactViaTicketingSystem,
-  respondToTicket,
-  askGithubDiscussion,
-  respondToDiscussion,
-  createUse(packageHolder, requestCodeReview),
-  createUse(packageHolder, requestConferenceCall),
-  createUse(packageHolder, attendConferenceCall),
-  createUse(packageHolder, contactViaTicketingSystem),
-  createUse(packageHolder, askGithubDiscussion),
-  createUse(jointJSPlusUser, contactViaTicketingSystem),
-  createUse(jointJSPlusUser, askGithubDiscussion),
-  createUse(jointJSUser, askGithubDiscussion),
-  createUse(techSupport, reviewCode),
-  createUse(techSupport, giveFeedback),
-  createUse(techSupport, proposeChanges),
-  createUse(techSupport, proposeTimeAndDateOfCall),
-  createUse(techSupport, attendConferenceCall),
-  createUse(techSupport, respondToTicket),
-  createUse(techSupport, respondToDiscussion),
-  createUse(community, respondToDiscussion),
-  createExtend(proposeChanges, giveFeedback),
-  createInclude(reviewCode, requestCodeReview),
-  createInclude(giveFeedback, reviewCode),
-  createInclude(proposeTimeAndDateOfCall, requestConferenceCall),
-  createInclude(attendConferenceCall, proposeTimeAndDateOfCall),
-  createInclude(respondToTicket, contactViaTicketingSystem),
-  createInclude(respondToDiscussion, askGithubDiscussion)
-]);
+// Variables globales para boundaries y aliases
+const boundaries = {};
+const aliases = {}; // Mapeo de alias a elementos
 
 function getFillColor(colors) {
   if (colors.length === 0) return COLORS[7];
@@ -632,26 +485,6 @@ function fillUseCaseColors() {
   });
 }
 
-fillUseCaseColors();
-
-paper.on("link:connect", () => fillUseCaseColors());
-graph.on("remove", () => fillUseCaseColors());
-
-paper.on("link:mouseenter", (linkView) => {
-  if (!(linkView.model instanceof Use)) return;
-  const toolsView = new dia.ToolsView({
-    tools: [
-      new linkTools.TargetArrowhead({ scale: 1.2 }),
-      new linkTools.Remove({ scale: 1.2 })
-    ]
-  });
-  linkView.addTools(toolsView);
-});
-
-paper.on("link:mouseleave", (linkView) => {
-  linkView.removeTools();
-});
-
 function scaleToFit() {
   const graphBBox = graph.getBBox();
   paper.scaleContentToFit({
@@ -664,68 +497,6 @@ function scaleToFit() {
   const xLeft = area.width / 2 - graphBBox.x - graphBBox.width / 2;
   paper.translate(xLeft * sy, yTop * sy);
 }
-
-window.addEventListener("resize", () => scaleToFit());
-scaleToFit();
-
-// Ya no necesitamos estas funciones
-// Helper function to position elements inside or outside boundaries
-/* function getElementPosition(boundary, boundaryElementsPosition, globalX, globalY, globalOffsetX, globalOffsetY, boundaryPadding) {
-  let posX, posY;
-  if (boundary) {
-    // Position element within the current boundary
-    const boundaryBBox = boundary.getBBox();
-    const boundaryPos = boundaryElementsPosition[boundary.attr("label/text")];
-    posX = boundaryPos.x;
-    posY = boundaryPos.y;
-    // Update the position for the next element within the boundary
-    boundaryElementsPosition[boundary.attr("label/text")].x += globalOffsetX;
-    if (boundaryElementsPosition[boundary.attr("label/text")].x > boundaryBBox.x + boundaryBBox.width - boundaryPadding) {
-      // Move to the next row if the current row is full
-      boundaryElementsPosition[boundary.attr("label/text")].x = boundaryBBox.x + boundaryPadding;
-      boundaryElementsPosition[boundary.attr("label/text")].y += globalOffsetY;
-    }
-  } else {
-    // Position element globally
-    posX = globalX;
-    posY = globalY;
-    globalX += globalOffsetX;
-    if (globalX > 800) {
-      // Move to the next row if the current row is full
-      globalX = 50;
-      globalY += globalOffsetY;
-    }
-  }
-  return { x: posX, y: posY, globalX, globalY };
-} */
-
-// Helper function to calculate boundary size based on the number of elements inside it
-/* function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX, globalOffsetY) {
-  if (boundaryElements.length === 0) {
-    return { width: 300, height: 200 }; // Default size if no elements
-  }
-
-  let maxX = 0;
-  let maxY = 0;
-
-  boundaryElements.forEach((element) => {
-    const bbox = element.getBBox();
-    const elementRight = bbox.x + bbox.width;
-    const elementBottom = bbox.y + bbox.height;
-
-    if (elementRight > maxX) {
-      maxX = elementRight;
-    }
-    if (elementBottom > maxY) {
-      maxY = elementBottom;
-    }
-  });
-
-  return {
-    width: maxX - boundaryElements[0].position().x + boundaryPadding + globalOffsetX,
-    height: maxY - boundaryElements[0].position().y + boundaryPadding + globalOffsetY,
-  };
-} */
 
 function adjustBoundarySizes() {
   Object.values(boundaries).forEach((boundary) => {
@@ -750,18 +521,10 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
   const lines = input.split("\n");
   const elements = [];
   const links = [];
-  const boundaries = {};
-  const aliases = {}; // Mapeo de alias a elementos
+  // Reiniciar boundaries y aliases
+  Object.keys(boundaries).forEach((key) => delete boundaries[key]);
+  Object.keys(aliases).forEach((key) => delete aliases[key]);
   let currentBoundary = null;
-  // Ya no necesitamos estas variables
-/*   let globalX = 50;
-  let globalY = 50;
-  const globalOffsetX = 150;
-  const globalOffsetY = 150;
-  const boundaryPadding = 20;
-  const boundaryElementsPosition = {}; */
-
-  const boundaryElements = {};
 
   lines.forEach((line) => {
     const trimmedLine = line.trim();
@@ -774,42 +537,19 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       const boundary = new Boundary({
         size: {
           width: 300,
-          height: 200,
+          height: 200
         },
-        /*position: {
-          x: globalX,
-          y: globalY,
-        }, */
         attrs: {
           label: {
-            text: boundaryName,
-          },
-        },
+            text: boundaryName
+          }
+        }
       });
       elements.push(boundary);
       boundaries[boundaryName] = boundary;
-      /*boundaryElementsPosition[boundaryName] = {
-        x: boundary.position().x + boundaryPadding,
-        y: boundary.position().y + boundaryPadding,
-      }; */
-      boundaryElements[boundaryName] = [];
       currentBoundary = boundary;
     } else if (trimmedLine === "}") {
       // Fin del boundary actual
-      if (currentBoundary) {
-        const boundaryName = currentBoundary.attr("label/text");
-/*         const size = calculateBoundarySize(
-          boundaryElements[boundaryName],
-          boundaryPadding,
-          globalOffsetX,
-          globalOffsetY
-        ); 
-        currentBoundary.resize(size.width, size.height);
-        globalY =
-          currentBoundary.position().y +
-          currentBoundary.size().height +
-          globalOffsetY;*/
-      }
       currentBoundary = null;
     } else if (
       (match = trimmedLine.match(
@@ -819,28 +559,14 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       // Definición de un actor con alias opcional
       const actorName = match[1].replace(/"/g, "");
       const alias = match[2] || actorName;
-      /*const actorPositionData = getElementPosition(
-        currentBoundary,
-        boundaryElementsPosition,
-        globalX,
-        globalY,
-        globalOffsetX,
-        globalOffsetY,
-        boundaryPadding
-      ); 
-      globalX = actorPositionData.globalX;
-      globalY = actorPositionData.globalY;*/
       const actor = createActor(
         actorName,
-        /*actorPositionData.x,
-        actorPositionData.y, */
         COLORS[Math.floor(Math.random() * COLORS.length)]
       );
       elements.push(actor);
       aliases[alias] = actor; // Guardar el actor en los alias
       if (currentBoundary) {
         currentBoundary.embed(actor);
-        boundaryElements[currentBoundary.attr("label/text")].push(actor);
       }
     } else if (
       (match = trimmedLine.match(
@@ -850,29 +576,13 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       // Definición de un caso de uso
       const useCaseName = match[1].replace(/"/g, "");
       const alias = match[2] || useCaseName;
-/*       const useCasePositionData = getElementPosition(
-        currentBoundary,
-        boundaryElementsPosition,
-        globalX,
-        globalY,
-        globalOffsetX,
-        globalOffsetY,
-        boundaryPadding
-      ); 
-      globalX = useCasePositionData.globalX;
-      globalY = useCasePositionData.globalY;*/
-      const useCase = createUseCase(
-        useCaseName
-        /*useCasePositionData.x,
-        useCasePositionData.y */
-      );
+      const useCase = createUseCase(useCaseName);
       elements.push(useCase);
       aliases[alias] = useCase; // Guardar el caso de uso con su alias
       if (currentBoundary) {
         currentBoundary.embed(useCase);
-        boundaryElements[currentBoundary.attr("label/text")].push(useCase);
       }
-    }     else if (
+    } else if (
       (match = trimmedLine.match(
         /^(".*?"|\S+)\s*(-->|\.{2}>)\s*(".*?"|\S+)(?:\s*:\s*(.*))?$/i
       ))
@@ -925,9 +635,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
     }
   });
 
-  graph.clear();
-  graph.addCells([...elements, ...links]);
-
+  graph.resetCells([...elements, ...links]);
 
   // Aplicar el Directed Graph Layout al grafo
   layout.DirectedGraph.layout(graph, {
@@ -945,3 +653,23 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
   fillUseCaseColors();
   scaleToFit();
 });
+
+paper.on("link:connect", () => fillUseCaseColors());
+graph.on("remove", () => fillUseCaseColors());
+
+paper.on("link:mouseenter", (linkView) => {
+  if (!(linkView.model instanceof Use)) return;
+  const toolsView = new dia.ToolsView({
+    tools: [
+      new linkTools.TargetArrowhead({ scale: 1.2 }),
+      new linkTools.Remove({ scale: 1.2 })
+    ]
+  });
+  linkView.addTools(toolsView);
+});
+
+paper.on("link:mouseleave", (linkView) => {
+  linkView.removeTools();
+});
+
+window.addEventListener("resize", () => scaleToFit());
