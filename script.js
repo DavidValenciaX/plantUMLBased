@@ -1,4 +1,5 @@
-const { shapes: defaultShapes, dia, util, linkTools } = joint;
+// Importar el módulo de layout desde JointJS
+const { shapes: defaultShapes, dia, util, linkTools, layout } = joint;
 
 const paperContainer = document.getElementById("paper-container");
 
@@ -667,8 +668,9 @@ function scaleToFit() {
 window.addEventListener("resize", () => scaleToFit());
 scaleToFit();
 
+// Ya no necesitamos estas funciones
 // Helper function to position elements inside or outside boundaries
-function getElementPosition(boundary, boundaryElementsPosition, globalX, globalY, globalOffsetX, globalOffsetY, boundaryPadding) {
+/* function getElementPosition(boundary, boundaryElementsPosition, globalX, globalY, globalOffsetX, globalOffsetY, boundaryPadding) {
   let posX, posY;
   if (boundary) {
     // Position element within the current boundary
@@ -695,10 +697,10 @@ function getElementPosition(boundary, boundaryElementsPosition, globalX, globalY
     }
   }
   return { x: posX, y: posY, globalX, globalY };
-}
+} */
 
 // Helper function to calculate boundary size based on the number of elements inside it
-function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX, globalOffsetY) {
+/* function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX, globalOffsetY) {
   if (boundaryElements.length === 0) {
     return { width: 300, height: 200 }; // Default size if no elements
   }
@@ -723,6 +725,24 @@ function calculateBoundarySize(boundaryElements, boundaryPadding, globalOffsetX,
     width: maxX - boundaryElements[0].position().x + boundaryPadding + globalOffsetX,
     height: maxY - boundaryElements[0].position().y + boundaryPadding + globalOffsetY,
   };
+} */
+
+function adjustBoundarySizes() {
+  Object.values(boundaries).forEach((boundary) => {
+    const boundaryElements = boundary.getEmbeddedCells();
+    if (boundaryElements.length === 0) return;
+
+    const elementsBBox = dia.BBox.union(
+      boundaryElements.map((el) => el.getBBox())
+    );
+    const padding = 20;
+
+    boundary.position(elementsBBox.x - padding, elementsBBox.y - padding);
+    boundary.resize(
+      elementsBBox.width + 2 * padding,
+      elementsBBox.height + 2 * padding
+    );
+  });
 }
 
 document.getElementById("generate-diagram").addEventListener("click", () => {
@@ -733,12 +753,14 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
   const boundaries = {};
   const aliases = {}; // Mapeo de alias a elementos
   let currentBoundary = null;
-  let globalX = 50;
+  // Ya no necesitamos estas variables
+/*   let globalX = 50;
   let globalY = 50;
   const globalOffsetX = 150;
   const globalOffsetY = 150;
   const boundaryPadding = 20;
-  const boundaryElementsPosition = {};
+  const boundaryElementsPosition = {}; */
+
   const boundaryElements = {};
 
   lines.forEach((line) => {
@@ -754,10 +776,10 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
           width: 300,
           height: 200,
         },
-        position: {
+        /*position: {
           x: globalX,
           y: globalY,
-        },
+        }, */
         attrs: {
           label: {
             text: boundaryName,
@@ -766,27 +788,27 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       });
       elements.push(boundary);
       boundaries[boundaryName] = boundary;
-      boundaryElementsPosition[boundaryName] = {
+      /*boundaryElementsPosition[boundaryName] = {
         x: boundary.position().x + boundaryPadding,
         y: boundary.position().y + boundaryPadding,
-      };
+      }; */
       boundaryElements[boundaryName] = [];
       currentBoundary = boundary;
     } else if (trimmedLine === "}") {
       // Fin del boundary actual
       if (currentBoundary) {
         const boundaryName = currentBoundary.attr("label/text");
-        const size = calculateBoundarySize(
+/*         const size = calculateBoundarySize(
           boundaryElements[boundaryName],
           boundaryPadding,
           globalOffsetX,
           globalOffsetY
-        );
+        ); 
         currentBoundary.resize(size.width, size.height);
         globalY =
           currentBoundary.position().y +
           currentBoundary.size().height +
-          globalOffsetY;
+          globalOffsetY;*/
       }
       currentBoundary = null;
     } else if (
@@ -797,7 +819,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       // Definición de un actor con alias opcional
       const actorName = match[1].replace(/"/g, "");
       const alias = match[2] || actorName;
-      const actorPositionData = getElementPosition(
+      /*const actorPositionData = getElementPosition(
         currentBoundary,
         boundaryElementsPosition,
         globalX,
@@ -805,13 +827,13 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         globalOffsetX,
         globalOffsetY,
         boundaryPadding
-      );
+      ); 
       globalX = actorPositionData.globalX;
-      globalY = actorPositionData.globalY;
+      globalY = actorPositionData.globalY;*/
       const actor = createActor(
         actorName,
-        actorPositionData.x,
-        actorPositionData.y,
+        /*actorPositionData.x,
+        actorPositionData.y, */
         COLORS[Math.floor(Math.random() * COLORS.length)]
       );
       elements.push(actor);
@@ -828,7 +850,7 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
       // Definición de un caso de uso
       const useCaseName = match[1].replace(/"/g, "");
       const alias = match[2] || useCaseName;
-      const useCasePositionData = getElementPosition(
+/*       const useCasePositionData = getElementPosition(
         currentBoundary,
         boundaryElementsPosition,
         globalX,
@@ -836,13 +858,13 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
         globalOffsetX,
         globalOffsetY,
         boundaryPadding
-      );
+      ); 
       globalX = useCasePositionData.globalX;
-      globalY = useCasePositionData.globalY;
+      globalY = useCasePositionData.globalY;*/
       const useCase = createUseCase(
-        useCaseName,
-        useCasePositionData.x,
-        useCasePositionData.y
+        useCaseName
+        /*useCasePositionData.x,
+        useCasePositionData.y */
       );
       elements.push(useCase);
       aliases[alias] = useCase; // Guardar el caso de uso con su alias
@@ -905,6 +927,21 @@ document.getElementById("generate-diagram").addEventListener("click", () => {
 
   graph.clear();
   graph.addCells([...elements, ...links]);
+
+
+  // Aplicar el Directed Graph Layout al grafo
+  layout.DirectedGraph.layout(graph, {
+    setLinkVertices: false,
+    rankDir: "TB", // Dirección del layout: Top to Bottom
+    rankSep: 100,
+    nodeSep: 50,
+    marginX: 50,
+    marginY: 50
+  });
+
+  // Ajustar el tamaño de los boundaries después del layout
+  adjustBoundarySizes();
+
   fillUseCaseColors();
   scaleToFit();
 });
